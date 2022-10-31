@@ -46,11 +46,11 @@ OBSTYPE: observation type
  INPUT PARAMETERS:
     <date> - string in the form of 20yy-mm-dd
     <name> - string in the form of Jxxxx+xxxx or SDSS_Jxxxx+xxxx, find the name in the observation log
-    <save> - save the final fits file or not. Defult is yes
+    <save> - save the processed fits files or not. Defult is yes
     <plot> - plot a preview of the fits file. Defult is no
     
  OUTPUT:
-    A fits file that saubstracted the sky frames and stacked together with median
+    Fits files of all the frames of the desired object that are saubstracted the sky frames
 """
 
 
@@ -134,7 +134,7 @@ def sky_substraction(date, name, save=True, plot=False):
     # use the offset of the first frame as a base! don't offset things that are the same offset as this
     data_shift = []
     for i in range(len(headers)):
-        # if same offset as first frame, don't shift
+        # if same offset as the first frame, don't shift
         if np.array_equal(offsets[i], offsets[0]):
             data_shift.append(data_sub[i])
         # otherwise, shift to where the first frame is
@@ -155,12 +155,22 @@ def sky_substraction(date, name, save=True, plot=False):
         plt.colorbar()
 
     if save:
-        med_hdu = fits.PrimaryHDU(med)
-        filebase = headers[0]['DATAFILE'][1:8]
+        for i in range(len(headers)):
+            # save the reduced and stacked source
+            sub_hdu = fits.PrimaryHDU(data_sub[i])
+            filebase = headers[0]['DATAFILE'][1:8]
+            framenum = headers[i]['FRAMENUM']
+            write_hdulist_to(
+                sub_hdu, 'NIRES/' + date + '/skysub_science/' + 'skysub_' +
+                filebase + name + '_' + f'{framenum}' + '.fits')
+
+        # save the master flat
+        m_flat_hdu = fits.PrimaryHDU(m_flat)
         write_hdulist_to(
-            med_hdu,
-            'NIRES/' + date + '/' + 'skysub_' + filebase + name + '.fits')
-        
+            m_flat_hdu, 'NIRES/' + date + '/' + 'm_flat_' + filebase + '.fits')
+
+################################################################################################
+################################################################################################
         
     
 def find_targnames(date):
